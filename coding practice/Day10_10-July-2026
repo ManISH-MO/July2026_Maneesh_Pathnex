@@ -1,0 +1,224 @@
+# Day 10 — Advanced Kubernetes, Jenkins, and GitLab CI
+
+## 🔹 Ansible — Create Docker Containers for Multiple Applications
+
+```yaml
+- name: Setup Docker Containers for Multiple Apps
+  hosts: all
+  become: yes
+  tasks:
+    - name: Pull Web App Image
+      docker_image:
+        name: my-web-app
+        source: pull
+
+    - name: Pull Database App Image
+      docker_image:
+        name: my-database-app
+        source: pull
+
+    - name: Run Web App Container
+      docker_container:
+        name: web-app
+        image: my-web-app
+        state: started
+        published_ports:
+          - "8080:80"
+    
+    - name: Run Database App Container
+      docker_container:
+        name: database-app
+        image: my-database-app
+        state: started
+        published_ports:
+          - "3306:3306"
+🔹 Terraform — VPC with Private and Public Subnets
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "public" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "us-east-1a"
+  map_public_ip_on_launch = true
+}
+
+resource "aws_subnet" "private" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "us-east-1b"
+}
+🔹 Kubernetes — Deploying StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pathnex-db
+spec:
+  serviceName: "pathnex-db"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: pathnex-db
+  template:
+    metadata:
+      labels:
+        app: pathnex-db
+    spec:
+      containers:
+        - name: db
+          image: mysql:5.7
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: mysql-storage
+  volumeClaimTemplates:
+    - metadata:
+        name: mysql-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+🔹 Jenkinsfile — Build and Deploy to Kubernetes
+pipeline {
+    agent any
+    environment {
+        IMAGE_NAME = 'pathnex-web-app'
+    }
+    stages {
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    docker.build("${env.IMAGE_NAME}")
+                }
+            }
+        }
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('https://docker.io', 'docker-credentials') {
+                        docker.image("${env.IMAGE_NAME}").push('latest')
+                    }
+                }
+            }
+        }
+Day 09 — Docker Integration with Jenkins & GitLab
+🔹 Ansible — Setup Docker Container for Nginx
+- name: Setup Docker Container for Nginx
+  hosts: all
+  become: yes
+  tasks:
+    - name: Pull Nginx image
+      docker_image:
+        name: nginx
+        source: pull
+    - name: Run Nginx container
+      docker_container:
+        name: nginx-container
+        image: nginx
+        state: started
+        published_ports:
+          - "8080:80"
+🔹 Terraform — EC2 with Auto Scaling Group
+resource "aws_launch_configuration" "example" {
+  name = "example-config"
+  image_id = "ami-0abcd1234abcd1234"
+  instance_type = "t3.medium"
+}
+
+resource "aws_autoscaling_group" "example" {
+  desired_capacity     = 2
+  max_size             = 3
+  min_size             = 1
+  vpc_zone_identifier  = ["subnet-12345678"]
+  launch_configuration = aws_launch_configuration.example.id
+}
+🔹 Kubernetes — Horizontal Pod Autoscaler (HPA)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pathnex-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pathnex-app
+  template:
+    metadata:
+      labels:
+        app: pathnex-app
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+
+---
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: pathnex-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: pathnex-deployment
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 50
+🔹 Jenkinsfile — Deploy to Kubernetes
+pipeline {
+    agent any
+    stages {
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    sh 'kubectl apply -f deployment.yaml'
+                }
+            }
+        }
+    }
+}
+🔹 GitLab CI/CD — Build, Push, and Deploy
+stages:
+  - build
+  - push
+  - deploy
+
+build:
+  stage: build
+  script:
+    - docker build -t pathnex-web-app .
+
+push:
+  stage: push
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"
+    - docker push pathnex-web-app
+
+🔹 GitLab CI/CD — Deploy to Kubernetes
+stages:
+  - deploy
+
+deploy:
+  stage: deploy
+  script:
+    - kubectl apply -f kubernetes/deployment.yaml
+
+
+🔹 Docker
+# Working Directory & COPY
+FROM ubuntu:22.04
+WORKDIR /opt/pathnex/devops-project
+COPY . /opt/pathnex/devops-project/
+CMD ["ls", "-l", "/opt/pathnex/devops-project"]
+
+# Real Path
+/opt/pathnex/devops-project
+# Environment Variables
+FROM ubuntu:22.04
+ENV INSTITUTE=Pathnex
+ENV COURSE=DevOps
+CMD echo "$INSTITUTE - $COURSE"
